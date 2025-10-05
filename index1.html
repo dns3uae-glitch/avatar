@@ -1,140 +1,152 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="UTF-8">
-<title>مسرح الجريمة 3D واقعي</title>
-<style>
-  body { margin:0; overflow:hidden; background:#111; }
-  canvas { display:block; }
-  .controls {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    display: grid; grid-template-areas: ". up ." "left . right" ". down ."; gap: 10px;
-  }
-  button {
-    width: 50px; height: 50px; font-size: 18px; border:none;
-    border-radius: 5px; background:#444; color:#fff; cursor:pointer;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>غرفة مسرح الجريمة الواقعية</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    canvas { display: block; }
+  </style>
 </head>
 <body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script>
+    // إعداد المشهد والكاميرا
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1.6, 5); // ارتفاع واقعي للعين
 
-<div class="controls">
-  <button id="up" style="grid-area: up;">↑</button>
-  <button id="down" style="grid-area: down;">↓</button>
-  <button id="left" style="grid-area: left;">←</button>
-  <button id="right" style="grid-area: right;">→</button>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-<script>
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x202020); // خلفية داكنة
-
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 50);
-  camera.position.set(0,1.5,5);
-  let cameraRotationY = 0;
-
-  const renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  window.addEventListener('resize', ()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    document.body.appendChild(renderer.domElement);
 
-  // إضاءة واقعية
-  const ambientLight = new THREE.AmbientLight(0xffffff,0.6);
-  scene.add(ambientLight);
+    // إضاءة سينمائية
+    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    const ceilingLight = new THREE.PointLight(0xffffff, 1);
+    ceilingLight.position.set(0, 4.5, 0);
+    scene.add(ceilingLight);
 
-  const spotLight = new THREE.PointLight(0xffffff,0.8);
-  spotLight.position.set(2,5,3);
-  scene.add(spotLight);
+    // غرفة مغلقة واقعية
+    const roomMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, side: THREE.BackSide });
+    const room = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 20), roomMaterial);
+    scene.add(room);
 
-  // الغرفة
-  const floorMaterial = new THREE.MeshStandardMaterial({color:0x654321}); // خشبي داكن
-  const wallMaterial = new THREE.MeshStandardMaterial({color:0x888888}); // رمادي فاتح
-  const ceilingMaterial = new THREE.MeshStandardMaterial({color:0xffffff}); // أبيض
+    // أرضية خشبية
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshStandardMaterial({ color: 0x663300 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -5;
+    scene.add(floor);
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(10,10), floorMaterial);
-  floor.rotation.x = -Math.PI/2; scene.add(floor);
+    // طاولة
+    const table = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 0.2, 2),
+      new THREE.MeshStandardMaterial({ color: 0x552200 })
+    );
+    table.position.set(0, -4.9 + 1, -3);
+    scene.add(table);
 
-  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMaterial);
-  backWall.position.set(0,2.5,-5); scene.add(backWall);
+    // كرسي مقلوب
+    const chair = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.5, 1),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
+    );
+    chair.rotation.z = Math.PI / 2;
+    chair.position.set(-2, -4.5, -2);
+    scene.add(chair);
 
-  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMaterial);
-  leftWall.rotation.y = Math.PI/2; leftWall.position.set(-5,2.5,0); scene.add(leftWall);
+    // باب
+    const door = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 4, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x222222 })
+    );
+    door.position.set(0, 0, 10);
+    scene.add(door);
 
-  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(10,5), wallMaterial);
-  rightWall.rotation.y = -Math.PI/2; rightWall.position.set(5,2.5,0); scene.add(rightWall);
+    // نافذة
+    const windowFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 2, 0.1),
+      new THREE.MeshStandardMaterial({ color: 0x888888 })
+    );
+    windowFrame.position.set(-9.9, 0, 0);
+    windowFrame.rotation.y = Math.PI / 2;
+    scene.add(windowFrame);
 
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(10,10), ceilingMaterial);
-  ceiling.rotation.x = Math.PI/2; ceiling.position.y = 5; scene.add(ceiling);
+    // أدوات الجريمة الواقعية
+    const knife = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.1, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x880000, metalness: 0.8, roughness: 0.2 })
+    );
+    knife.position.set(-1, -4.9, 1);
+    scene.add(knife);
 
-  // أدوات الجريمة مع ألوان واقعية
-  const knife = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.02,0.5), new THREE.MeshStandardMaterial({color:0xaaaaaa}));
-  knife.position.set(-1,0.05,1); scene.add(knife);
+    const gun = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.3, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 })
+    );
+    gun.position.set(0, -3.7, -3);
+    scene.add(gun);
 
-  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.1,0.5), new THREE.MeshStandardMaterial({color:0x111111}));
-  gun.position.set(1,0.05,-1); scene.add(gun);
+    const glove = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x444400 })
+    );
+    glove.position.set(1, -4.9, 9);
+    scene.add(glove);
 
-  const glove = new THREE.Mesh(new THREE.SphereGeometry(0.2,16,16), new THREE.MeshStandardMaterial({color:0xffffff}));
-  glove.position.set(0,0.2,0); scene.add(glove);
+    const cup = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.3, 0.3, 0.5, 12),
+      new THREE.MeshStandardMaterial({ color: 0xcccccc, transparent: true, opacity: 0.6 })
+    );
+    cup.position.set(-2, -4.75, -2);
+    scene.add(cup);
 
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.3,16), new THREE.MeshStandardMaterial({color:0xffffff}));
-  cup.position.set(0.5,0.15,0.5); scene.add(cup);
+    // تحكم ديناميكي بالكاميرا
+    let yaw = 0;
+    const speed = 0.1;
+    const keys = {};
 
-  // التحكم بالكاميرا
-  const moveSpeed = 0.1;
-  const rotateSpeed = 0.03;
-  const keys = {up:false, down:false, left:false, right:false};
+    document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-  document.getElementById('up').addEventListener('mousedown', ()=> keys.up=true);
-  document.getElementById('up').addEventListener('mouseup', ()=> keys.up=false);
-  document.getElementById('down').addEventListener('mousedown', ()=> keys.down=true);
-  document.getElementById('down').addEventListener('mouseup', ()=> keys.down=false);
-  document.getElementById('left').addEventListener('mousedown', ()=> keys.left=true);
-  document.getElementById('left').addEventListener('mouseup', ()=> keys.left=false);
-  document.getElementById('right').addEventListener('mousedown', ()=> keys.right=true);
-  document.getElementById('right').addEventListener('mouseup', ()=> keys.right=false);
+    document.addEventListener('mousemove', e => {
+      yaw -= e.movementX * 0.002;
+    });
 
-  window.addEventListener('keydown', e=>{
-    if(e.key==='ArrowUp') keys.up=true;
-    if(e.key==='ArrowDown') keys.down=true;
-    if(e.key==='ArrowLeft') keys.left=true;
-    if(e.key==='ArrowRight') keys.right=true;
-  });
-  window.addEventListener('keyup', e=>{
-    if(e.key==='ArrowUp') keys.up=false;
-    if(e.key==='ArrowDown') keys.down=false;
-    if(e.key==='ArrowLeft') keys.left=false;
-    if(e.key==='ArrowRight') keys.right=false;
-  });
+    function animate() {
+      requestAnimationFrame(animate);
 
-  function animate(){
-    requestAnimationFrame(animate);
+      const dx = Math.sin(yaw);
+      const dz = Math.cos(yaw);
 
-    if(keys.left) cameraRotationY += rotateSpeed;
-    if(keys.right) cameraRotationY -= rotateSpeed;
+      if (keys['w']) {
+        camera.position.x += dx * speed;
+        camera.position.z -= dz * speed;
+      }
+      if (keys['s']) {
+        camera.position.x -= dx * speed;
+        camera.position.z += dz * speed;
+      }
+      if (keys['a']) {
+        camera.position.x -= dz * speed;
+        camera.position.z -= dx * speed;
+      }
+      if (keys['d']) {
+        camera.position.x += dz * speed;
+        camera.position.z += dx * speed;
+      }
 
-    const dirX = Math.sin(cameraRotationY);
-    const dirZ = Math.cos(cameraRotationY);
+      camera.position.y = 1.6;
+      const lookX = camera.position.x + dx;
+      const lookZ = camera.position.z - dz;
+      camera.lookAt(lookX, 1.6, lookZ);
 
-    if(keys.up){
-      camera.position.x += dirX*moveSpeed;
-      camera.position.z += dirZ*moveSpeed;
+      renderer.render(scene, camera);
     }
-    if(keys.down){
-      camera.position.x -= dirX*moveSpeed;
-      camera.position.z -= dirZ*moveSpeed;
-    }
 
-    camera.lookAt(camera.position.x+dirX, camera.position.y, camera.position.z+dirZ);
-
-    renderer.render(scene,camera);
-  }
-  animate();
-</script>
+    animate();
+  </script>
 </body>
 </html>
