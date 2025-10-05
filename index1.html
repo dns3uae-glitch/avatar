@@ -4,65 +4,29 @@
   <meta charset="UTF-8" />
   <title>غرفة مسرح الجريمة</title>
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
-    #storyPanel {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 300px;
-      z-index: 10;
-    }
-
-    .hidden {
-      display: none;
-    }
+    body { margin: 0; overflow: hidden; background: black; }
+    canvas { display: block; }
   </style>
 </head>
 <body>
-  <canvas id="crimeCanvas"></canvas>
-  <div id="storyPanel" class="hidden">
-    <h2>أدوات الجريمة</h2>
-    <p>تم العثور على عدة أدلة في الغرفة. اختر الأداة للتحقيق.</p>
-    <button onclick="closePanel()">إغلاق</button>
-  </div>
-
-  <!-- مكتبة Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-  <!-- OrbitControls -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
-
   <script>
-    const canvas = document.getElementById('crimeCanvas');
-    const renderer = new THREE.WebGLRenderer({ canvas });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(5, 5, 10);
-
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0, 0);
-    controls.update();
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
     // إضاءة
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    const pointLight = new THREE.PointLight(0xffffff, 1);
-    pointLight.position.set(0, 5, 5);
-    scene.add(ambientLight, pointLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(0, 5, 5);
+    scene.add(light);
 
     // أرضية
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
-      new THREE.MeshStandardMaterial({ color: 0x888888 })
+      new THREE.MeshStandardMaterial({ color: 0x555555 })
     );
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
@@ -92,7 +56,6 @@
     );
     knife.position.set(-2, 0.05, 1);
     scene.add(knife);
-    tools.push(knife);
 
     const gun = new THREE.Mesh(
       new THREE.BoxGeometry(1.2, 0.3, 0.3),
@@ -100,7 +63,6 @@
     );
     gun.position.set(2, 0.05, -1);
     scene.add(gun);
-    tools.push(gun);
 
     const glove = new THREE.Mesh(
       new THREE.SphereGeometry(0.4, 16, 16),
@@ -108,7 +70,6 @@
     );
     glove.position.set(0, 0.05, 2);
     scene.add(glove);
-    tools.push(glove);
 
     const cup = new THREE.Mesh(
       new THREE.CylinderGeometry(0.3, 0.3, 0.5, 12),
@@ -116,20 +77,24 @@
     );
     cup.position.set(1, 0.25, 1);
     scene.add(cup);
-    tools.push(cup);
 
-    // تفاعل
-    canvas.addEventListener('click', () => {
-      document.getElementById('storyPanel').classList.remove('hidden');
-    });
+    // كاميرا
+    camera.position.set(0, 2, 5);
+    const speed = 0.2;
+    const keys = {};
 
-    window.closePanel = function () {
-      document.getElementById('storyPanel').classList.add('hidden');
-    };
+    document.addEventListener('keydown', e => keys[e.key] = true);
+    document.addEventListener('keyup', e => keys[e.key] = false);
 
     function animate() {
       requestAnimationFrame(animate);
-      controls.update();
+
+      if (keys['ArrowUp'] || keys['w']) camera.position.z -= speed;
+      if (keys['ArrowDown'] || keys['s']) camera.position.z += speed;
+      if (keys['ArrowLeft'] || keys['a']) camera.position.x -= speed;
+      if (keys['ArrowRight'] || keys['d']) camera.position.x += speed;
+
+      camera.lookAt(0, 0, 0);
       renderer.render(scene, camera);
     }
     animate();
