@@ -11,11 +11,21 @@
 <body>
   <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
   <script>
+    // المشهد والكاميرا
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer();
+    camera.position.set(0, 2, 5);
+
+    const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    // إعادة ضبط الكاميرا عند تغيير حجم الشاشة
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 
     // إضاءة
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -48,8 +58,6 @@
     scene.add(rightWall);
 
     // أدوات الجريمة
-    const tools = [];
-
     const knife = new THREE.Mesh(
       new THREE.BoxGeometry(1, 0.1, 0.3),
       new THREE.MeshStandardMaterial({ color: 0x880000 })
@@ -78,8 +86,7 @@
     cup.position.set(1, 0.25, 1);
     scene.add(cup);
 
-    // كاميرا
-    camera.position.set(0, 2, 5);
+    // تحكم بالكاميرا
     const speed = 0.2;
     const keys = {};
 
@@ -94,9 +101,11 @@
       if (keys['ArrowLeft'] || keys['a']) camera.position.x -= speed;
       if (keys['ArrowRight'] || keys['d']) camera.position.x += speed;
 
+      camera.position.y = 2; // يثبت ارتفاع الكاميرا
       camera.lookAt(0, 0, 0);
       renderer.render(scene, camera);
     }
+
     animate();
   </script>
 </body>
