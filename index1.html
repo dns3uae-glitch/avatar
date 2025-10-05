@@ -1,124 +1,135 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>3D Crime Scene Updated</title>
-<style>
-body,html{margin:0;height:100%;background:#06060a;color:#fff;font-family:sans-serif}
-header{height:60px;background:#0c0e12;display:flex;align-items:center;padding:0 16px;gap:8px}
-button{padding:6px 12px;border-radius:6px;border:none;cursor:pointer;background:#f59e0b;color:#000;font-weight:700}
-#canvas-container{position:relative;width:100%;height:calc(100% - 60px)}
-#three-canvas{width:100%;height:100%;display:block}
-</style>
+  <meta charset="UTF-8" />
+  <title>غرفة مسرح الجريمة</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    #storyPanel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 300px;
+      z-index: 10;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-<header>
-<button id="loadCrimeSceneBtn">تحميل مشهد الجريمة</button>
-</header>
-<div id="canvas-container">
-<canvas id="three-canvas"></canvas>
-</div>
+  <canvas id="crimeCanvas"></canvas>
+  <div id="storyPanel" class="hidden">
+    <h2>أدوات الجريمة</h2>
+    <p>تم العثور على عدة أدلة في الغرفة. اختر الأداة للتحقيق.</p>
+    <button onclick="closePanel()">إغلاق</button>
+  </div>
 
-<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-let scene, camera, renderer, controls;
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    const canvas = document.getElementById('crimeCanvas');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas });
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-function initThree() {
-    const canvas = document.getElementById('three-canvas');
-    renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    renderer.outputEncoding = THREE.sRGBEncoding;
+    // تحكم بالكاميرا
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    camera.position.set(5, 5, 10);
+    controls.target.set(0, 0, 0);
+    controls.update();
 
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x040405);
+    // إضاءة
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(0, 5, 5);
+    scene.add(ambientLight, pointLight);
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 2000);
-    camera.position.set(0,4,8);
+    // أرضية
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshStandardMaterial({ color: 0x888888 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.target.set(0,1,0); controls.update();
+    // جدران
+    const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 10), wallMaterial);
+    backWall.position.set(0, 5, -10);
+    scene.add(backWall);
 
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(10,12), new THREE.MeshStandardMaterial({color:0x222222, roughness:0.9}));
-    floor.rotation.x = -Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+    const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 10), wallMaterial);
+    leftWall.rotation.y = Math.PI / 2;
+    leftWall.position.set(-10, 5, 0);
+    scene.add(leftWall);
 
-    const ambient = new THREE.AmbientLight(0xffffff,0.12); scene.add(ambient);
+    const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 10), wallMaterial);
+    rightWall.rotation.y = -Math.PI / 2;
+    rightWall.position.set(10, 5, 0);
+    scene.add(rightWall);
 
-    const mainSpot = new THREE.SpotLight(0xfff2d6,2.0,40,Math.PI/8,0.2,1);
-    mainSpot.position.set(0.5,5,1); mainSpot.castShadow=true; scene.add(mainSpot);
+    // أدوات الجريمة
+    const tools = [];
 
-    const grid = new THREE.GridHelper(20,40,0x333333,0x1a1a1a); grid.position.y=0.01; scene.add(grid);
+    const knife = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.1, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x880000 })
+    );
+    knife.position.set(-2, 0.05, 1);
+    scene.add(knife);
+    tools.push(knife);
 
-    window.addEventListener('resize', ()=>{
-        camera.aspect = window.innerWidth/window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight-60);
+    const gun = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.3, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
+    );
+    gun.position.set(2, 0.05, -1);
+    scene.add(gun);
+    tools.push(gun);
+
+    const glove = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x444400 })
+    );
+    glove.position.set(0, 0.05, 2);
+    scene.add(glove);
+    tools.push(glove);
+
+    const cup = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.3, 0.3, 0.5, 12),
+      new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+    );
+    cup.position.set(1, 0.25, 1);
+    scene.add(cup);
+    tools.push(cup);
+
+    // تفاعل
+    canvas.addEventListener('click', () => {
+      document.getElementById('storyPanel').classList.remove('hidden');
     });
-    renderer.setSize(window.innerWidth, window.innerHeight-60);
-}
 
-function animate() { requestAnimationFrame(animate); renderer.render(scene,camera); }
-initThree();
-animate();
-
-document.getElementById("loadCrimeSceneBtn").addEventListener("click", async () => {
-    try {
-        const response = await fetch("./presets/crime_scene_bedroom.json");
-        if (!response.ok) throw new Error("Failed to load scene preset");
-        const data = await response.json();
-        console.log("Loaded preset:", data);
-        loadCrimeScene(data);
-    } catch (err) {
-        console.error("Error loading crime scene:", err);
-        alert("حدث خطأ أثناء تحميل مشهد الجريمة");
+    function closePanel() {
+      document.getElementById('storyPanel').classList.add('hidden');
     }
-});
 
-function loadCrimeScene(data) {
-    scene.children.filter(o=>o.userData?.isDynamic).forEach(o=>scene.remove(o));
-
-    data.objects.forEach(obj => {
-        let mesh;
-        switch(obj.type){
-            case "Bed":
-                mesh = new THREE.Mesh(new THREE.BoxGeometry(2,0.5,1.6), new THREE.MeshStandardMaterial({color:0x6b4b3b,roughness:0.7}));
-                break;
-            case "Nightstand":
-                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.6,0.4), new THREE.MeshStandardMaterial({color:0x3f2b20,roughness:0.9}));
-                break;
-            case "Mannequin":
-                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.3,1,0.3), new THREE.MeshStandardMaterial({color:0x8b6b5a,roughness:0.8}));
-                break;
-            case "Gun":
-                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.1,0.6), new THREE.MeshStandardMaterial({color:0x111316, metalness:0.9, roughness:0.25}));
-                break;
-            case "BloodPatch":
-                mesh = new THREE.Mesh(new THREE.CircleGeometry(obj.radius || 0.2,32), new THREE.MeshStandardMaterial({color:0x6b0000,transparent:true,opacity:0.85}));
-                mesh.rotation.x = -Math.PI/2;
-                break;
-            case "Marker":
-                const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=64;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle="#ffe066"; ctx.fillRect(0,0,128,64);
-                ctx.fillStyle="#000"; ctx.font="bold 48px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
-                ctx.fillText(obj.num,64,32);
-                const tex = new THREE.CanvasTexture(canvas);
-                mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.15), new THREE.MeshStandardMaterial({map:tex, side:THREE.DoubleSide}));
-                mesh.rotation.y = Math.PI/4;
-                break;
-        }
-        if(mesh){
-            mesh.position.set(...(obj.position||[0,0,0]));
-            if(obj.rotation) mesh.rotation.set(...obj.rotation);
-            if(obj.scale) mesh.scale.set(...obj.scale);
-            mesh.userData.isDynamic=true;
-            scene.add(mesh);
-        }
-    });
-    alert("تم تحميل مشهد الجريمة بنجاح ("+data.objects.length+" عناصر)");
-}
-</script>
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
 </body>
 </html>
