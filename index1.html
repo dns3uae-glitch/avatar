@@ -7,16 +7,6 @@
   <style>
     html,body{height:100%;margin:0;background:#202020;overflow:hidden}
     canvas{display:block}
-    .controls{
-      position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
-      display:grid; grid-template-areas: ". up ." "left . right" ". down ."; gap:8px;
-      z-index:30;
-    }
-    .controls button{
-      width:48px;height:48px;border-radius:8px;border:0;background:#333;color:#fff;font-size:18px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.6);
-      touch-action: none;
-    }
     #loading {
       position: absolute; top: 12px; left: 12px; color:#fff; font-family: sans-serif;
       background: rgba(0,0,0,0.5); padding:8px 10px; border-radius:6px; z-index:40;
@@ -24,14 +14,7 @@
   </style>
 </head>
 <body>
-<div id="loading">جاري تحميل المشهد...</div>
-
-<div class="controls" aria-hidden="true">
-  <button id="up">↑</button>
-  <button id="down">↓</button>
-  <button id="left">←</button>
-  <button id="right">→</button>
-</div>
+<div id="loading">جاري تحميل النموذج...</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -86,7 +69,7 @@ scene.add(table);
 
 // تحميل النموذج
 const loader = new THREE.GLTFLoader();
-const modelURL = 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Avocado/glTF-Binary/Avocado.glb';
+const modelURL = 'https://dns3uae-glitch.github.io/avatar/presets/Musket_FBX.glb';
 
 loader.load(
   modelURL,
@@ -107,52 +90,31 @@ loader.load(
     scene.add(model);
     document.getElementById('loading').style.display = 'none';
   },
-  (xhr) => {
-    const pct = xhr.total ? Math.round((xhr.loaded / xhr.total) * 100) : null;
-    document.getElementById('loading').innerText = 'تحميل: ' + (pct ? pct + '%' : 'جاري...');
-  },
+  undefined,
   (err) => {
     console.error('خطأ تحميل النموذج:', err);
-    document.getElementById('loading').innerText = 'تعذر تحميل النموذج: تحقق من الرابط أو الصيغة أو إعدادات CORS';
+    document.getElementById('loading').innerText = 'تعذر تحميل النموذج: تحقق من الرابط أو إعدادات CORS';
   }
 );
 
 // تحكم بالكاميرا
 let yaw = 0;
-const speed = 0.09;
-const rotateSpeed = 0.03;
-const keys = { up:false, down:false, left:false, right:false };
+const speed = 0.05;
+const keys = {};
 
-document.getElementById('up').addEventListener('pointerdown', ()=> keys.up = true);
-document.getElementById('up').addEventListener('pointerup', ()=> keys.up = false);
-document.getElementById('down').addEventListener('pointerdown', ()=> keys.down = true);
-document.getElementById('down').addEventListener('pointerup', ()=> keys.down = false);
-document.getElementById('left').addEventListener('pointerdown', ()=> keys.left = true);
-document.getElementById('left').addEventListener('pointerup', ()=> keys.left = false);
-document.getElementById('right').addEventListener('pointerdown', ()=> keys.right = true);
-document.getElementById('right').addEventListener('pointerup', ()=> keys.right = false);
-
-window.addEventListener('keydown', e=>{
-  if (e.key === 'ArrowUp') keys.up = true;
-  if (e.key === 'ArrowDown') keys.down = true;
-  if (e.key === 'ArrowLeft') keys.left = true;
-  if (e.key === 'ArrowRight') keys.right = true;
-});
-window.addEventListener('keyup', e=>{
-  if (e.key === 'ArrowUp') keys.up = false;
-  if (e.key === 'ArrowDown') keys.down = false;
-  if (e.key === 'ArrowLeft') keys.left = false;
-  if (e.key === 'ArrowRight') keys.right = false;
-});
+document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
 function animate(){
   requestAnimationFrame(animate);
 
-  if (keys.left) yaw += rotateSpeed;
-  if (keys.right) yaw -= rotateSpeed;
   const dx = Math.sin(yaw), dz = Math.cos(yaw);
-  if (keys.up){ camera.position.x += dx * speed; camera.position.z -= dz * speed; }
-  if (keys.down){ camera.position.x -= dx * speed; camera.position.z += dz * speed; }
+  if (keys['w']) { camera.position.x += dx * speed; camera.position.z -= dz * speed; }
+  if (keys['s']) { camera.position.x -= dx * speed; camera.position.z += dz * speed; }
+  if (keys['a']) { camera.position.x -= dz * speed; camera.position.z -= dx * speed; }
+  if (keys['d']) { camera.position.x += dz * speed; camera.position.z += dx * speed; }
+  if (keys['q']) { yaw += 0.03; }
+  if (keys['e']) { yaw -= 0.03; }
 
   camera.lookAt(camera.position.x + dx, camera.position.y, camera.position.z + dz);
   renderer.render(scene, camera);
