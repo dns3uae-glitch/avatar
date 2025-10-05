@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Crime Scene — غرفة نوم (مسبق)</title>
+  <style>
+    :root{ --bg:#06060a; --panel:rgba(12,14,18,0.9); --accent:#f59e0b; --muted:#9ca3af; }
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg);color:#e6eef6;direction:rtl}
+    #app{height:100%;display:flex;flex-direction:column}
+    header{height:64px;display:flex;align-items:center;padding:8px 16px;background:linear-gradient(90deg, rgba(12,14,18,0.95), rgba(6,7,11,0.9));gap:12px;z-index:5}
+    .logo{font-weight:700;color:var(--accent);font-size:18px}
+    .toolbar{display:flex;gap:8px;align-items:center;margin-left:auto}
+    .button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;cursor:pointer;color:inherit}
+    #canvas-container{flex:1;position:relative;overflow:hidden}
+    #three-canvas{width:100%;height:100%;display:block;outline:none}
+    #sidebar{position:absolute;right:16px;top:80px;width:320px;max-height:75vh;overflow:auto;padding:12px;background:var(--panel);backdrop-filter:blur(6px);border-radius:10px;border:1px solid rgba(255,255,255,0.03);z-index:6}
+    .item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:8px;background:rgba(255,255,255,0.02);cursor:pointer}
+    .item img{width:56px;height:40px;object-fit:cover;border-radius:6px}
+    footer{height:56px;background:linear-gradient(90deg, rgba(6,7,11,0.9), rgba(10,12,16,0.9));display:flex;align-items:center;justify-content:space-between;padding:8px 16px;color:var(--muted)}
+    .small{font-size:12px;color:var(--muted)}
+    label{display:block;font-size:13px;margin-bottom:6px}
+    input,select{width:100%;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .panel-title{font-weight:700;margin-bottom:8px}
+    #right-controls{position:absolute;left:16px;top:80px;width:300px;padding:12px;background:var(--panel);border-radius:10px;border:1px solid rgba(255,255,255,0.03);z-index:6}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">مسرح الجريمة — غرفة نوم</div>
+    <div class="toolbar">
+      <button id="btn-load-preset" class="button">تحميل مشهد الجريمة (غرفة نوم)</button>
+      <button id="btn-export" class="button">تصدير صورة (PNG)</button>
+      <button id="btn-clear" class="button">إفراغ</button>
+    </div>
+  </header>
+
+  <div id="canvas-container">
+    <canvas id="three-canvas"></canvas>
+
+    <div id="sidebar">
+      <div class="panel-title">تفاصيل المشهد</div>
+      <div class="small" id="sceneDesc">
+        هذا المشهد يحاكي غرفة نوم واقعية تحتوي على سرير، جثة (نموذج تمثيلي غير جرافيكي)، بقع دم سطحية، مسدس على الأرض، كرسي مقلوب، علامات دليل مرقمة، ومسار آثار أقدام. الإضاءة مضبوطة على وضع تحقيق (Forensic).
+      </div>
+      <hr style="border-color:rgba(255,255,255,0.04)"/>
+      <div style="margin-top:8px">
+        <label>إعدادات الإضاءة</label>
+        <select id="lightPreset">
+          <option value="forensic">تحقيق — بقعة ضوء</option>
+          <option value="studio">استوديو</option>
+          <option value="night">ليل</option>
+        </select>
+        <label style="margin-top:8px">شدة الضوء</label>
+        <input id="lightIntensity" type="range" min="0" max="3" step="0.05" value="1">
+      </div>
+    </div>
+
+    <div id="right-controls">
+      <div class="panel-title">تعليمات</div>
+      <div class="small">اضغط زر "تحميل مشهد الجريمة" لوضع العناصر تلقائياً في الغرفة. يمكنك بعدها تحريك العناصر عبر الفأرة أو استخدام أدوات التعديل.</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="small">مشروع تجريبي — العناصر تمثيلية وغير جرافيكية</div>
+    <div class="small">لإضافة موديلات GLB حقيقية استخدم زر الاستيراد الموجود في النسخة الكاملة.</div>
+  </footer>
+</div>
+
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// Single-file preset scene (non-graphic representation)
+(function(){
+  const canvas = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x040405);
+
+  const camera = new THREE.PerspectiveCamera(50,1,0.1,2000);
+  camera.position.set(0,4,8);
+
+  const orbit = new THREE.OrbitControls(camera, renderer.domElement);
+  orbit.target.set(0,1,0); orbit.update();
+
+  function onResize(){ const w=window.innerWidth, h=window.innerHeight-64; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+  window.addEventListener('resize', onResize); onResize();
+
+  // Room
+  const roomSize = {w:10,h:4,d:12};
+  const floorMat = new THREE.MeshStandardMaterial({color:0x222222, roughness:0.9});
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize.w, roomSize.d), floorMat);
+  floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; floor.position.y = 0; scene.add(floor);
+
+  const wallMat = new THREE.MeshStandardMaterial({color:0x0d0d0f, roughness:0.95});
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(roomSize.w, roomSize.h), wallMat); back.position.set(0,roomSize.h/2,-roomSize.d/2); scene.add(back);
+  const left = new THREE.Mesh(new THREE.PlaneGeometry(roomSize.d, roomSize.h), wallMat); left.rotation.y = Math.PI/2; left.position.set(-roomSize.w/2,roomSize.h/2,0); scene.add(left);
+  const right = new THREE.Mesh(new THREE.PlaneGeometry(roomSize.d, roomSize.h), wallMat); right.rotation.y = -Math.PI/2; right.position.set(roomSize.w/2,roomSize.h/2,0); scene.add(right);
+
+  // Bed
+  const bed = new THREE.Group();
+  const mattress = new THREE.Mesh(new THREE.BoxGeometry(2.0,0.28,1.6), new THREE.MeshStandardMaterial({color:0x6b4b3b, roughness:0.7}));
+  mattress.position.y=0.42; bed.add(mattress);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(2.12,0.22,1.72), new THREE.MeshStandardMaterial({color:0x2b1f18, roughness:0.95}));
+  frame.position.y=0.2; bed.add(frame);
+  bed.position.set(-1.6,0,0); scene.add(bed);
+
+  // Nightstand and lamp
+  const table = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.6,0.4), new THREE.MeshStandardMaterial({color:0x3f2b20, roughness:0.9}));
+  table.position.set(-0.3,0.3,-1.6); scene.add(table);
+  const lamp = new THREE.Mesh(new THREE.ConeGeometry(0.12,0.3,16), new THREE.MeshStandardMaterial({color:0xfff4d6, emissive:0x443300, emissiveIntensity:0.6}));
+  lamp.position.set(-0.3,0.9,-1.6); scene.add(lamp);
+
+  // Chair (overturned)
+  const chair = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.6,0.5), new THREE.MeshStandardMaterial({color:0x2f2f2f, roughness:0.9}));
+  chair.position.set(1.2,0.2,0.8); chair.rotation.z = 1.1; scene.add(chair);
+
+  // Non-graphic mannequin (lying body) - assembled from simple shapes (no gore)
+  const body = new THREE.Group();
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.25,0.6,4,8), new THREE.MeshStandardMaterial({color:0x8b6b5a, roughness:0.8}));
+  torso.rotation.x = Math.PI/2; torso.position.set(0,0.35,0);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.18,16,12), new THREE.MeshStandardMaterial({color:0x9e7d6a, roughness:0.9}));
+  head.position.set(0,0.75,0.05);
+  const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.5,8), new THREE.MeshStandardMaterial({color:0x8b6b5a}));
+  leftArm.rotation.z = Math.PI/2; leftArm.position.set(-0.35,0.4,0.2);
+  const rightArm = leftArm.clone(); rightArm.position.set(0.35,0.4,-0.15);
+  const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.7,8), new THREE.MeshStandardMaterial({color:0x5f473e}));
+  leftLeg.rotation.x = Math.PI/6; leftLeg.position.set(-0.18,0.05,0.8);
+  const rightLeg = leftLeg.clone(); rightLeg.position.set(0.18,0.05,0.6);
+  body.add(torso, head, leftArm, rightArm, leftLeg, rightLeg);
+  body.position.set(0.6,0, -0.2);
+  body.rotation.y = -0.85;
+  body.userData.isMannequin = true;
+  scene.add(body);
+
+  // Gun (simple metallic object)
+  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.06,0.6), new THREE.MeshStandardMaterial({color:0x111316, metalness:0.9, roughness:0.25}));
+  gun.position.set(0.05,0.08,0.9); gun.rotation.y = 0.7; scene.add(gun);
+
+  // Blood decals (non-graphic red transparent planes) near body and on floor
+  function createBloodPatch(radius, x, z, opacity=0.85){
+    const mat = new THREE.MeshStandardMaterial({color:0x6b0000, transparent:true, opacity:opacity, roughness:0.6, metalness:0.0});
+    const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 32), mat);
+    mesh.rotation.x = -Math.PI/2; mesh.position.set(x, 0.011, z);
+    scene.add(mesh); return mesh;
+  }
+  const blood1 = createBloodPatch(0.45, 0.6, -0.1, 0.9);
+  const blood2 = createBloodPatch(0.25, 0.15, 0.75, 0.8);
+
+  // Footprint path (series of small dark ovals)
+  function createFootprint(x,z,rot){
+    const m = new THREE.Mesh(new THREE.EllipseGeometry ? new THREE.CircleGeometry(0.08,16) : new THREE.CircleGeometry(0.08,16), new THREE.MeshStandardMaterial({color:0x2b0a0a, transparent:true, opacity:0.9}));
+    m.rotation.x = -Math.PI/2; m.position.set(x, 0.012, z); m.rotation.z = rot;
+    scene.add(m); return m;
+  }
+  const footprints = [];
+  for(let i=0;i<6;i++){
+    footprints.push(createFootprint(-1.6 + i*0.4, 1.8 - i*0.18, (i%2?0.5:-0.5)));
+  }
+
+  // Forensic markers (numbered small yellow placards)
+  function createMarker(num, x, z){
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.02,0.1), new THREE.MeshStandardMaterial({color:0x000000}));
+    const card = new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.18), new THREE.MeshStandardMaterial({color:0xffe066, side:THREE.DoubleSide}));
+    card.position.set(0,0.12,0); card.rotation.y = Math.PI/4;
+    const texture = new THREE.CanvasTexture(createNumberCanvas(num));
+    card.material.map = texture; card.material.needsUpdate = true;
+    g.add(base); g.add(card); g.position.set(x,0,z); scene.add(g); return g;
+  }
+  function createNumberCanvas(n){
+    const c = document.createElement('canvas'); c.width=256; c.height=128; const ctx=c.getContext('2d');
+    ctx.fillStyle='#ffe066'; ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#000'; ctx.font='bold 96px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(String(n), c.width/2, c.height/2+6);
+    return c;
+  }
+  const m1 = createMarker(1, 0.12, 0.92);
+  const m2 = createMarker(2, 0.62, -0.05);
+  const m3 = createMarker(3, -0.4, 0.6);
+
+  // Ambient and spot lighting - forensic preset
+  const ambient = new THREE.AmbientLight(0xffffff, 0.12);
+  scene.add(ambient);
+  const mainSpot = new THREE.SpotLight(0xfff2d6,2.0,40,Math.PI/8,0.2,1);
+  mainSpot.position.set(0.5,5,1); mainSpot.castShadow = true; scene.add(mainSpot);
+  const rim = new THREE.DirectionalLight(0xaabbee,0.08); rim.position.set(-6,6,-2); scene.add(rim);
+
+  // helper grid
+  const grid = new THREE.GridHelper(20,40,0x333333,0x1a1a1a); grid.position.y=0.01; scene.add(grid);
+
+  // Lighting controls
+  document.getElementById('lightPreset').addEventListener('change', applyLighting);
+  document.getElementById('lightIntensity').addEventListener('input', applyLighting);
+  function applyLighting(){
+    const preset = document.getElementById('lightPreset').value;
+    const intensity = parseFloat(document.getElementById('lightIntensity').value);
+    if(preset==='forensic'){ mainSpot.intensity = 2.0 * intensity; ambient.intensity = 0.12 * intensity; rim.intensity = 0.08 * intensity; renderer.toneMappingExposure = 0.9; }
+    else if(preset==='studio'){ mainSpot.intensity = 0.8 * intensity; ambient.intensity = 0.4 * intensity; rim.intensity = 0.12 * intensity; renderer.toneMappingExposure = 1.0; }
+    else if(preset==='night'){ mainSpot.intensity = 1.0 * intensity; ambient.intensity = 0.06 * intensity; rim.intensity = 0.04 * intensity; renderer.toneMappingExposure = 0.6; }
+  }
+  applyLighting();
+
+  // Place everything in one function to allow reloading preset
+  function loadPreset(){
+    // reset camera
+    camera.position.set(1.5,1.6,2.4);
+    orbit.target.set(0.6,0.6,0.2); orbit.update();
+    // (objects already added above - could add animation or slight jiggle here)
+    // ensure mannequin and objects visible
+    [bed, table, lamp, chair, body, gun, blood1, blood2, m1, m2, m3].forEach(o=>{ if(o) o.visible=true; });
+  }
+  document.getElementById('btn-load-preset').addEventListener('click', ()=>{ loadPreset(); });
+
+  // Export PNG
+  document.getElementById('btn-export').addEventListener('click', ()=>{
+    renderer.domElement.toBlob((blob)=>{
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'crime_scene.png'; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  });
+
+  // Clear scene (remove dynamic objects)
+  document.getElementById('btn-clear').addEventListener('click', ()=>{
+    // For demo, simply hide dynamic objects
+    [bed, table, lamp, chair, body, gun, blood1, blood2, m1, m2, m3].forEach(o=>{ if(o) o.visible=false; });
+  });
+
+  // Animation loop (simple subtle camera bob when idle)
+  let last = performance.now();
+  function animate(t){
+    const now = performance.now();
+    const delta = Math.min((now-last)/1000, 1/30);
+    renderer.render(scene, camera);
+    last = now;
+    requestAnimationFrame(animate);
+  }
+  renderer.setSize(window.innerWidth, window.innerHeight-64);
+  requestAnimationFrame(animate);
+
+  // initial load
+  loadPreset();
+
+  // Accessibility note in console
+  console.log('Crime scene preset loaded (representational, non-graphic)');
+})();
+</script>
+</body>
+</html>
