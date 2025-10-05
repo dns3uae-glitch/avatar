@@ -1,90 +1,154 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="UTF-8">
-<title>مسرح الجريمة 3D مضمون</title>
-<style>
-  body { margin:0; overflow:hidden; background:#111; }
-  canvas { display:block; }
-</style>
+  <meta charset="UTF-8" />
+  <title>غرفة مسرح الجريمة</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    canvas { display: block; }
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      gap: 10px;
+      z-index: 10;
+    }
+    #controls button {
+      padding: 10px;
+      background: #222;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #zoomControls {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 10;
+    }
+    #zoomControls button {
+      padding: 10px;
+      background: #222;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
+  <div id="controls">
+    <button onclick="move('forward')">↑</button>
+    <button onclick="rotate('left')">⟲</button>
+    <button onclick="move('left')">←</button>
+    <button onclick="move('right')">→</button>
+    <button onclick="rotate('right')">⟳</button>
+    <button onclick="move('back')">↓</button>
+  </div>
+  <div id="zoomControls">
+    <button onclick="zoom('in')">+</button>
+    <button onclick="zoom('out')">−</button>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-<script>
-  // 1️⃣ إنشاء المشهد والكاميرا
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111);
-
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
-  camera.position.set(5,3,8);
-  camera.lookAt(0,1,0);
-
-  const renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  // 2️⃣ إعادة ضبط حجم الشاشة
-  window.addEventListener('resize', ()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    document.body.appendChild(renderer.domElement);
 
-  // 3️⃣ إضاءة واضحة
-  const ambientLight = new THREE.AmbientLight(0xffffff,1.0);
-  scene.add(ambientLight);
+    // إضاءة
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const ceilingLight = new THREE.PointLight(0xffffff, 1);
+    ceilingLight.position.set(0, 9.5, 0);
+    scene.add(ceilingLight);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff,0.8);
-  directionalLight.position.set(5,10,5);
-  scene.add(directionalLight);
+    // غرفة مغلقة
+    const roomMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, side: THREE.BackSide });
+    const room = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 20), roomMaterial);
+    scene.add(room);
 
-  // 4️⃣ الغرفة
-  const wallMaterial = new THREE.MeshStandardMaterial({color:0x222222});
-  const floorMaterial = new THREE.MeshStandardMaterial({color:0x444444});
+    // أدوات الجريمة
+    const knife = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.1, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x880000 })
+    );
+    knife.position.set(-2, 0.1, 1);
+    scene.add(knife);
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(20,20), floorMaterial);
-  floor.rotation.x = -Math.PI/2; scene.add(floor);
+    const gun = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.3, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
+    );
+    gun.position.set(2, 0.1, -1);
+    scene.add(gun);
 
-  const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
-  backWall.position.set(0,5,-10); scene.add(backWall);
+    const glove = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x444400 })
+    );
+    glove.position.set(0, 0.1, 2);
+    scene.add(glove);
 
-  const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
-  leftWall.rotation.y = Math.PI/2; leftWall.position.set(-10,5,0); scene.add(leftWall);
+    const cup = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.3, 0.3, 0.5, 12),
+      new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+    );
+    cup.position.set(1, 0.25, 1);
+    scene.add(cup);
 
-  const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
-  rightWall.rotation.y = -Math.PI/2; rightWall.position.set(10,5,0); scene.add(rightWall);
+    // كاميرا
+    camera.position.set(0, 2, 5);
+    let yaw = 0;
 
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(20,20), wallMaterial);
-  ceiling.rotation.x = Math.PI/2; ceiling.position.y = 10; scene.add(ceiling);
+    function move(dir) {
+      const dx = Math.sin(yaw);
+      const dz = Math.cos(yaw);
+      if (dir === 'forward') {
+        camera.position.x += dx * 0.5;
+        camera.position.z -= dz * 0.5;
+      }
+      if (dir === 'back') {
+        camera.position.x -= dx * 0.5;
+        camera.position.z += dz * 0.5;
+      }
+      if (dir === 'left') {
+        camera.position.x -= dz * 0.5;
+        camera.position.z -= dx * 0.5;
+      }
+      if (dir === 'right') {
+        camera.position.x += dz * 0.5;
+        camera.position.z += dx * 0.5;
+      }
+    }
 
-  // 5️⃣ أدوات الجريمة
-  const knife = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1,0.02,0.5),
-    new THREE.MeshStandardMaterial({color:0xaaaaaa})
-  ); knife.position.set(-2,0.05,1); scene.add(knife);
+    function rotate(dir) {
+      if (dir === 'left') yaw += 0.1;
+      if (dir === 'right') yaw -= 0.1;
+    }
 
-  const gun = new THREE.Mesh(
-    new THREE.BoxGeometry(0.3,0.1,0.8),
-    new THREE.MeshStandardMaterial({color:0x111111})
-  ); gun.position.set(2,0.05,-1); scene.add(gun);
+    function zoom(dir) {
+      if (dir === 'in') camera.fov = Math.max(30, camera.fov - 5);
+      if (dir === 'out') camera.fov = Math.min(100, camera.fov + 5);
+      camera.updateProjectionMatrix();
+    }
 
-  const glove = new THREE.Mesh(
-    new THREE.SphereGeometry(0.3,16,16),
-    new THREE.MeshStandardMaterial({color:0x444400})
-  ); glove.position.set(0,0.3,2); scene.add(glove);
-
-  const cup = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2,0.2,0.5,16),
-    new THREE.MeshStandardMaterial({color:0xaaaaaa})
-  ); cup.position.set(1,0.25,1); scene.add(cup);
-
-  // 6️⃣ حلقة الرسوم
-  function animate(){
-    requestAnimationFrame(animate);
-    renderer.render(scene,camera);
-  }
-  animate();
-</script>
+    function animate() {
+      requestAnimationFrame(animate);
+      const lookX = camera.position.x + Math.sin(yaw);
+      const lookZ = camera.position.z - Math.cos(yaw);
+      camera.lookAt(lookX, 1.5, lookZ);
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
 </body>
 </html>
