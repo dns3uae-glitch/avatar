@@ -1,49 +1,59 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>مسرح الجريمة 3D مضمون</title>
-  <style>
-    body { margin:0; overflow:hidden; background:#111; }
-    canvas { display:block; }
-  </style>
+<meta charset="UTF-8">
+<title>مسرح الجريمة 3D مضمون</title>
+<style>
+  body { margin:0; overflow:hidden; background:#111; }
+  canvas { display:block; }
+</style>
 </head>
 <body>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-  // إنشاء المشهد والكاميرا
+  // 1️⃣ إنشاء المشهد والكاميرا
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x111111);
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
   camera.position.set(5,3,8);
-  camera.lookAt(0,1,0);
 
   const renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // إعادة ضبط حجم الشاشة
+  // 2️⃣ تحكم بالماوس
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0,1,0);          // النقطة التي تدور حولها
+  controls.enableDamping = true;       
+  controls.dampingFactor = 0.05;
+  controls.maxPolarAngle = Math.PI/2;  // لا يسمح بالدوران تحت الأرض
+  controls.update();
+
+  // 3️⃣ إعادة ضبط حجم الشاشة
   window.addEventListener('resize', ()=>{
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // إضاءة بسيطة
-  const ambientLight = new THREE.AmbientLight(0xffffff,1);
+  // 4️⃣ إضاءة واضحة
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
   scene.add(ambientLight);
 
-  // الأرضية
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(20,20),
-    new THREE.MeshStandardMaterial({color:0x444444})
-  );
-  floor.rotation.x = -Math.PI/2;
-  scene.add(floor);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(5,10,5);
+  scene.add(directionalLight);
 
-  // الجدران
+  // 5️⃣ غرفة واضحة
   const wallMaterial = new THREE.MeshStandardMaterial({color:0x222222});
+  const floorMaterial = new THREE.MeshStandardMaterial({color:0x444444});
+
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(20,20), floorMaterial);
+  floor.rotation.x = -Math.PI/2; scene.add(floor);
+
   const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
   backWall.position.set(0,5,-10); scene.add(backWall);
 
@@ -56,7 +66,7 @@
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(20,20), wallMaterial);
   ceiling.rotation.x = Math.PI/2; ceiling.position.y = 10; scene.add(ceiling);
 
-  // أدوات الجريمة بسيطة وواضحة
+  // 6️⃣ أدوات الجريمة
   const knife = new THREE.Mesh(
     new THREE.BoxGeometry(0.1,0.02,0.5),
     new THREE.MeshStandardMaterial({color:0xaaaaaa})
@@ -77,12 +87,14 @@
     new THREE.MeshStandardMaterial({color:0xaaaaaa})
   ); cup.position.set(1,0.25,1); scene.add(cup);
 
-  // حلقة الرسوم
+  // 7️⃣ حلقة الرسوم
   function animate(){
     requestAnimationFrame(animate);
+    controls.update();          // تحديث OrbitControls
     renderer.render(scene,camera);
   }
   animate();
+
 </script>
 </body>
 </html>
