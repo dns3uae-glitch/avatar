@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <title>مسرح الجريمة 3D</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #111; }
-    canvas { display: block; }
+    body { margin:0; overflow:hidden; background:#111; }
+    canvas { display:block; }
   </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-  // مشهد وكاميرا
+  // المشهد والكاميرا
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x111111);
 
@@ -21,8 +21,6 @@
 
   const renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
   // تحكم بالماوس
@@ -40,81 +38,62 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // إضاءة
-  const ambientLight = new THREE.AmbientLight(0xffffff,0.5);
+  // إضاءة قوية
+  const ambientLight = new THREE.AmbientLight(0xffffff,0.8);
   scene.add(ambientLight);
 
-  const pointLight = new THREE.PointLight(0xffffff,0.8);
-  pointLight.position.set(5,10,5);
-  pointLight.castShadow = true;
-  pointLight.shadow.mapSize.width = 2048;
-  pointLight.shadow.mapSize.height = 2048;
-  scene.add(pointLight);
-
-  const spotLight = new THREE.SpotLight(0xffffff,0.8);
-  spotLight.position.set(-5,10,5);
-  spotLight.castShadow = true;
-  scene.add(spotLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff,0.8);
+  directionalLight.position.set(5,10,5);
+  scene.add(directionalLight);
 
   // أرضية
-  const floorMaterial = new THREE.MeshStandardMaterial({color:0x444444, roughness:0.9});
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(20,20), floorMaterial);
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20,20),
+    new THREE.MeshStandardMaterial({color:0x444444})
+  );
   floor.rotation.x = -Math.PI/2;
-  floor.receiveShadow = true;
   scene.add(floor);
 
-  // جدران وسقف
-  const wallMaterial = new THREE.MeshStandardMaterial({color:0x222222, roughness:0.9});
+  // الجدران والسقف
+  const wallMaterial = new THREE.MeshStandardMaterial({color:0x222222});
   const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
-  backWall.position.set(0,5,-10); backWall.receiveShadow=true; scene.add(backWall);
+  backWall.position.set(0,5,-10); scene.add(backWall);
 
   const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
-  leftWall.rotation.y = Math.PI/2; leftWall.position.set(-10,5,0); leftWall.receiveShadow=true; scene.add(leftWall);
+  leftWall.rotation.y = Math.PI/2; leftWall.position.set(-10,5,0); scene.add(leftWall);
 
   const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(20,10), wallMaterial);
-  rightWall.rotation.y = -Math.PI/2; rightWall.position.set(10,5,0); rightWall.receiveShadow=true; scene.add(rightWall);
+  rightWall.rotation.y = -Math.PI/2; rightWall.position.set(10,5,0); scene.add(rightWall);
 
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(20,20), wallMaterial);
   ceiling.rotation.x = Math.PI/2; ceiling.position.y = 10; scene.add(ceiling);
 
-  // أدوات الجريمة
-  function createKnife(){
-    const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1,0.02,0.5),
-      new THREE.MeshStandardMaterial({color:0xaaaaaa, metalness:0.8, roughness:0.2})
-    ); blade.position.set(-2,0.05,1);
+  // أدوات الجريمة (مبسطة وواقعية)
+  const knife = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1,0.02,0.5),
+    new THREE.MeshStandardMaterial({color:0xaaaaaa})
+  );
+  knife.position.set(-2,0.05,1); scene.add(knife);
 
-    const handle = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05,0.05,0.2),
-      new THREE.MeshStandardMaterial({color:0x552200})
-    ); handle.position.set(-2,0.05,1.35);
+  const gun = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3,0.1,0.8),
+    new THREE.MeshStandardMaterial({color:0x111111})
+  );
+  gun.position.set(2,0.05,-1); scene.add(gun);
 
-    const knife = new THREE.Group(); knife.add(blade); knife.add(handle);
-    knife.castShadow = true; scene.add(knife);
-  } createKnife();
+  const glove = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3,16,16),
+    new THREE.MeshStandardMaterial({color:0x444400})
+  );
+  glove.position.set(0,0.3,2); scene.add(glove);
 
-  function createGun(){
-    const gun = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3,0.1,0.8),
-      new THREE.MeshStandardMaterial({color:0x111111, metalness:0.9, roughness:0.3})
-    ); gun.position.set(2,0.05,-1); gun.castShadow=true; scene.add(gun);
-  } createGun();
+  const cup = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2,0.2,0.5,16),
+    new THREE.MeshStandardMaterial({color:0xaaaaaa})
+  );
+  cup.position.set(1,0.25,1); scene.add(cup);
 
-  function createGlove(){
-    const glove = new THREE.Mesh(
-      new THREE.SphereGeometry(0.3,16,16),
-      new THREE.MeshStandardMaterial({color:0x444400, roughness:0.7})
-    ); glove.position.set(0,0.05,2); glove.castShadow=true; scene.add(glove);
-  } createGlove();
-
-  function createCup(){
-    const cup = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.2,0.2,0.5,16),
-      new THREE.MeshStandardMaterial({color:0xaaaaaa, metalness:0.3, roughness:0.6})
-    ); cup.position.set(1,0.25,1); cup.castShadow=true; scene.add(cup);
-  } createCup();
-
-  // Render loop
+  // حلقة الرسوم
   function animate(){
     requestAnimationFrame(animate);
     controls.update();
