@@ -24,7 +24,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
-camera.position.set(0, 1.6, 3);
+camera.position.set(0, 1.6, 4);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -58,12 +58,23 @@ const modelURL = 'https://dns3uae-glitch.github.io/avatar/presets/Musket_FBX.glb
 loader.load(
   modelURL,
   (gltf) => {
-    const model = gltf.scene;
-    model.scale.set(1, 1, 1);
+    const model = gltf.scene || gltf.scenes?.[0];
+    if (!model) {
+      document.getElementById('loading').innerText = 'النموذج فارغ أو غير صالح';
+      return;
+    }
+
+    model.scale.set(0.01, 0.01, 0.01); // تصغير النموذج إذا كان ضخمًا
     model.position.set(0, 0.5, 0);
     model.rotation.y = Math.PI;
 
     scene.add(model);
+
+    // ضبط الكاميرا لتنظر إلى مركز النموذج
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    camera.lookAt(center);
+
     document.getElementById('loading').style.display = 'none';
   },
   undefined,
@@ -73,26 +84,9 @@ loader.load(
   }
 );
 
-// تحكم بالكاميرا
-let yaw = 0;
-const speed = 0.05;
-const keys = {};
-
-document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
+// تحريك الكاميرا
 function animate(){
   requestAnimationFrame(animate);
-
-  const dx = Math.sin(yaw), dz = Math.cos(yaw);
-  if (keys['w']) { camera.position.x += dx * speed; camera.position.z -= dz * speed; }
-  if (keys['s']) { camera.position.x -= dx * speed; camera.position.z += dz * speed; }
-  if (keys['a']) { camera.position.x -= dz * speed; camera.position.z -= dx * speed; }
-  if (keys['d']) { camera.position.x += dz * speed; camera.position.z += dx * speed; }
-  if (keys['q']) { yaw += 0.03; }
-  if (keys['e']) { yaw -= 0.03; }
-
-  camera.lookAt(camera.position.x + dx, camera.position.y, camera.position.z + dz);
   renderer.render(scene, camera);
 }
 animate();
